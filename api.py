@@ -1,5 +1,6 @@
 import requests;
 from PIL import Image
+import json
 
 def mainMenu(): 
     print ("MAIN MENU: ")
@@ -23,7 +24,10 @@ def getData (resource):
         if dataFound.status_code == 404: print (("{} with id '{}' not found. ").format(resource[0:-1],getId)), findById()
         else: 
             dataFound = dataFound.json()
-            print (("\nDATA with id: '{}'").format(getId))
+            if resource == "users": r = "USER"
+            elif resource == "products": r = "PRODUCT"
+            elif resource == "carts": r = "CART" 
+            print (("\n{} with id: '{}'").format(r,getId))
             for param in dataFound:
                 print ('{}: {}'.format(param, dataFound[param]))
             print ("\n")
@@ -43,6 +47,10 @@ def getData (resource):
                 print ('\nALL PRODUCTS: \n')
                 for i in dataFound:
                     print ('{}: {}, {}, price: {}'.format(i['id'], i['title'], i['description'], i['price']))
+            elif resource == "carts":
+                print ('\nALL CARTS')
+                for i in dataFound:
+                    print ('{}: discounted total: {}, userId: {}, quantity: {}'.format(i['id'], i['discountedTotal'], i['userId'], i['totalQuantity']))
         dataMenu(resource)
     def saveDataImage():
         getId = input ("Enter the id: ")
@@ -93,11 +101,53 @@ def getData (resource):
             for product in dataFound:
                 print ('{}, price: {}, category: {}, id = {}'.format(product['title'], product['price'], product['category'], product['id']))
             dataMenu(resource)
+    def addData():
+        if resource == "users":
+            print ("\nADD user\n")
+            firstName = input("first name: ")
+            lastName = input ("last name: ")
+            age = input ("age: ")
+            addedData = {"firstName": "{}".format(firstName.capitalize()),
+                        "lastName": "{}".format(lastName.capitalize()),
+                        "age": "{}".format(age)}
+            dataAdd = requests.post ('https://dummyjson.com/users/add', data = addedData)
+            print ("\nUser ADDED: ")
+            print (dataAdd.json())
+            dataMenu(resource)
+        elif resource == "products":
+            print ("\nADD product\n")
+            title = input("title: ")
+            description = input ("description: ")
+            price = input ("price: ")
+            addedData = {"title": "{}".format(title.capitalize()),
+                        "description": "{}".format(description.capitalize()),
+                        "price": "{}".format(price)}
+            dataAdd = requests.post ('https://dummyjson.com/products/add', data = addedData)
+            print ("\nProduct ADDED: ")
+            print (dataAdd.json())
+            dataMenu(resource)
+    def updateData():
+        print ("\nUPDATE {}\n".format ("user" if resource == "users" else "product"))
+        getId = input ("id of a{}: ".format("n user" if resource == "users" else " product"))
+        key = input ("key: ")
+        value = input ("value: ")
+        dataUpdate = requests.put ('https://dummyjson.com/{}/{}'.format (resource, getId), data = {'{}'.format(key): '{}'.format(value)})
+        print ("\n{} UPDATED: ".format("User" if resource == "users" else "Product"))
+        print (dataUpdate.json())
+        dataMenu(resource)
+    def deleteData():
+        print ("\nDELETE {}\n".format ("user" if resource == "users" else "product"))
+        getId = input ("id of a{}: ".format("n user" if resource == "users" else " product"))
+        deletedData = requests.delete ('https://dummyjson.com/{}/{}'.format (resource, getId))
+        deletedData = deletedData.json()
+        if (deletedData['isDeleted'] == True):
+            print ("\n{} with id: '{}' DELETED on {}". format (("User" if resource == "users" else "Product"), getId, deletedData['deletedOn']))
+        dataMenu(resource)
     def dataMenu(resource):
         print ("\n{} MENU: ".format(resource.upper()))
         print ("1: find {} by id".format(resource[0:-1]))
         print ("2: get all {}".format(resource))
-        print ("3: save image(s) of an {}".format(resource[0:-1]))
+        print ("3: save image(s) of a{}".format("n " + resource[0:-1] if resource == "users" else " "+resource[0:-1]))
         print ("4: search {} with parametres".format(resource))
         print ("5: add {}".format(resource[0:-1]))
         print ("6: update {}".format(resource[0:-1]))
@@ -108,7 +158,10 @@ def getData (resource):
         elif inp == "2": getAllData()
         elif inp == "3": saveDataImage()
         elif inp == "4": searchDataWithParams()
+        elif inp == "5": addData()
+        elif inp == "6": updateData()
+        elif inp == "7": deleteData()
         elif inp == "-1": print ("\n"), mainMenu()
-        else: print ("\nunknown command"), dataMenu()
+        else: print ("\nunknown command"), dataMenu(resource)
     dataMenu(resource)   
 mainMenu()
